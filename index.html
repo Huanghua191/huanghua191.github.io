@@ -113,7 +113,14 @@ button{padding:10px 18px;border-radius:20px;border:none;background:#00b4d8;color
 
 <script>
 // ★★★ 只改这一行 ★★★
-const DEEPSEEK_KEY = "sk-d4d7c4becfc44749941d3e92eb0cb1ea";
+// 从浏览器本地存储读取 Key（不在代码里存密码）
+let DEEPSEEK_KEY = localStorage.getItem('xiaoban_key');
+if (!DEEPSEEK_KEY) {
+  DEEPSEEK_KEY = prompt('请输入你的 DeepSeek API Key：');
+  if (DEEPSEEK_KEY) {
+    localStorage.setItem('xiaoban_key', DEEPSEEK_KEY);
+  }
+}
 
 const inp = document.getElementById("inp");
 const sendBtn = document.getElementById("sendBtn");
