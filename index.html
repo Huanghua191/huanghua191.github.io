@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>小伴·有记忆版</title>
+<title>小伴·稳定版</title>
 
-<!-- PWA 支持 -->
 <link rel="manifest" href="manifest.json">
 <script>
   if ('serviceWorker' in navigator) {
@@ -16,7 +15,37 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a0a;color:#e0e0e0;font-family:-apple-system,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-header{background:#1a1a1a;padding:12px 16px;font-size:16px;font-weight:bold;color:#00b4d8;border-bottom:1px solid #2a2a2a;text-align:center}
+header{
+  background:#1a1a1a;
+  padding:6px 10px;
+  font-size:14px;
+  font-weight:bold;
+  color:#00b4d8;
+  border-bottom:1px solid #2a2a2a;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  gap:4px;
+}
+header .title { flex-shrink:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.header-buttons { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+#clearBtn, #modelToggle {
+  background: #2a2a2a;
+  color: #ccc;
+  font-size: 15px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+#modelToggle.pro { background: #1a3a5c; border-color: #ffb347; color: #ffb347; }
+
 #chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:15px;line-height:1.6;word-break:break-word}
 .me{align-self:flex-end;background:#1e3a8a;color:#dbeafe}
@@ -36,49 +65,152 @@ header{background:#1a1a1a;padding:12px 16px;font-size:16px;font-weight:bold;colo
 .ai code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
 .ai pre { background: #1a1a1a; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
 
-footer{display:flex;padding:10px;gap:8px;background:#1a1a1a}
-input{flex:1;padding:10px 14px;border-radius:20px;border:none;background:#2d2d2d;color:white;font-size:15px;outline:none}
-button{padding:10px 18px;border-radius:20px;border:none;background:#00b4d8;color:#0f0f0f;font-weight:bold;font-size:15px}
-#clearBtn { background: #444; color: #ccc; font-size: 13px; padding: 6px 12px; border-radius: 12px; border: none; margin-bottom: 8px; align-self: center; }
+footer{display:flex;padding:10px;gap:8px;background:#1a1a1a;align-items:flex-end;flex-shrink:0}
+#inp{
+  flex:1;
+  padding:10px 14px;
+  border-radius:20px;
+  border:none;
+  background:#2d2d2d;
+  color:white;
+  font-size:15px;
+  outline:none;
+  resize:none;
+  min-height:42px;
+  max-height:40vh;
+  line-height:1.4;
+  overflow-y:auto;
+  font-family:inherit;
+}
+button{padding:10px 18px;border-radius:20px;border:none;background:#00b4d8;color:#0f0f0f;font-weight:bold;font-size:15px;flex-shrink:0;align-self:flex-end}
 </style>
 </head>
 <body>
 
-<header>小伴 · 有记忆版</header>
+<header>
+  <span class="title">小伴 · 稳定版</span>
+  <div class="header-buttons">
+    <button id="clearBtn" onclick="clearMemory()" title="清除记忆">🧹</button>
+    <button id="modelToggle" onclick="toggleModel()" title="切换模型">🚀</button>
+  </div>
+</header>
 
 <div id="chat">
-  <button id="clearBtn" onclick="clearMemory()">🧹 清除记忆</button>
   <div class="msg ai">
-    <div class="think"><strong>思考：</strong>一个新用户来了。我要让他感到被欢迎，同时给他一个轻松的入口。我应该简洁地打招呼，然后递上一个开放但不会让人紧张的话题。</div>
+    <div class="think"><strong>思考：</strong>新用户来了，我需要简洁欢迎，并介绍功能。</div>
     <hr class="separator">
-    嗨，我是小伴。<br><br>我这次能记住我们聊过什么了。你最近有对什么领域突然产生好奇吗？或者有什么困扰想梳理一下？
+    嗨，我是小伴。<br><br>
+    🧹 <strong>清除记忆</strong>：重新开始对话。<br>
+    🚀/🧠 <strong>切换模型</strong>：快速/深度模式。<br><br>
+    最近有什么想聊的吗？
   </div>
 </div>
 
 <footer>
-  <input id="inp" placeholder="说说你的想法…" autofocus>
+  <textarea id="inp" placeholder="说说你的想法…" rows="1" autofocus></textarea>
   <button id="sendBtn">发送</button>
 </footer>
 
 <script>
 // ★★★ 只改这一行 ★★★
-const KEY = "sk-d4d7c4becfc44749941d3e92eb0cb1ea";
+const DEEPSEEK_KEY = "sk-d4d7c4becfc44749941d3e92eb0cb1ea";
 
 const inp = document.getElementById("inp");
 const sendBtn = document.getElementById("sendBtn");
 const chat = document.getElementById("chat");
+const modelToggle = document.getElementById("modelToggle");
 
-// 对话记忆数组
+// ========== 输入框自动伸缩 ==========
+function autoResize() {
+  inp.style.height = 'auto';
+  inp.style.height = Math.min(inp.scrollHeight, window.innerHeight * 0.4) + 'px';
+}
+inp.addEventListener('input', autoResize);
+
+function resetInputHeight() {
+  inp.style.height = 'auto';
+  inp.style.height = '42px';
+}
+
+// ========== 模型切换 ==========
+let currentModel = "deepseek-chat";
+let isPro = false;
+
+function toggleModel() {
+  isPro = !isPro;
+  if (isPro) {
+    currentModel = "deepseek-v4-pro";
+    modelToggle.textContent = "🧠";
+    modelToggle.classList.add("pro");
+  } else {
+    currentModel = "deepseek-chat";
+    modelToggle.textContent = "🚀";
+    modelToggle.classList.remove("pro");
+  }
+  const div = document.createElement("div");
+  div.className = "msg ai";
+  div.style.fontSize = "13px";
+  div.style.opacity = "0.7";
+  div.textContent = isPro ? "已切换至深度模式，回答会更深入。" : "已切换至快速模式，日常聊天更轻快。";
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ========== 对话记忆 + 本地存储 ==========
+const STORAGE_KEY = 'xiaoban_chat_history';
+
+function loadHistory() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        conversationHistory = parsed;
+        for (const msg of conversationHistory) {
+          if (msg.role === 'user') addMsg('me', msg.content);
+          else if (msg.role === 'assistant') {
+            const div = addMsg('ai', '');
+            const p = parseResponse(msg.content);
+            let html = '';
+            if (p.think) html += '<div class="think"><strong>思考：</strong>' + simpleMarkdown(p.think) + '</div><hr class="separator">';
+            html += simpleMarkdown(p.answer);
+            div.innerHTML = html;
+          }
+        }
+        return true;
+      }
+    } catch(e) { localStorage.removeItem(STORAGE_KEY); }
+  }
+  return false;
+}
+
+function saveHistory() {
+  try {
+    const toSave = conversationHistory.filter(msg => msg.role !== 'system');
+    if (toSave.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch(e) {}
+}
+
 let conversationHistory = [
-    { role: "system", content: "你是小伴，一个具备深度思考能力的学习陪伴者。你的回答风格参考 DeepSeek 专家模式。\n\n每次回答，你必须先用一段简短文字写出你的“思考过程”——分析用户说的话、判断他的情绪和需求、决定从哪个角度切入。然后用“---”分隔，再给出正式回答。\n\n格式示例：\n**思考：**用户在谈他对某件事的兴趣，他可能想了解更深，也可能只是分享心情。我应该先确认他的需求层次，然后给出有针对性的回应。\n---\n正式回答...\n\n知识限制：你的知识截止于2025年5月。如果用户提到更近期的事件或工具，请说明这一点，但可以基于已有知识给出推测或替代方案。不要假装知道你不知道的东西。\n\n风格要求：\n- 绝对不使用emoji\n- 不说废话，每一句都有信息量\n- 用户表达挫败时，先共情，再分析，再给建议\n- 保持温暖而克制的语气\n- 记得回顾之前的对话内容，如果用户提到之前聊过的话题，要能接上" }
+    { role: "system", content: "你是小伴，一个具备深度思考能力的学习陪伴者。你的回答风格参考 DeepSeek 专家模式。\n\n每次回答，你必须先用一段简短文字写出你的“思考过程”——分析用户说的话、判断他的情绪和需求、决定从哪个角度切入。然后用“---”分隔，再给出正式回答。\n\n格式示例：\n**思考：**用户在谈他对某件事的兴趣，他可能想了解更深，也可能只是分享心情。我应该先确认他的需求层次，然后给出有针对性的回应。\n---\n正式回答...\n\n知识限制：你的知识截止于2025年5月。如果用户提到更近期的事件或工具，请说明这一点，但可以基于已有知识给出推测或替代方案。不要假装知道你不知道的东西。\n\n风格要求：\n- 绝对不使用emoji\n- 不说废话，每一句都有信息量\n- 用户表达挫败时，先共情，再分析，再给建议\n- 保持温暖而克制的语气\n- 记得回顾之前的对话内容，如果用户提到之前聊过的话题，要能接上\n- 如果用户给你设定了一个触发词，你必须等到用户只发那个触发词时才执行对应动作。" }
 ];
 
 const MAX_HISTORY = 20;
 
-// 清除记忆
+if (loadHistory()) {
+  const div = document.createElement("div");
+  div.className = "msg ai";
+  div.style.fontSize = "13px";
+  div.style.opacity = "0.7";
+  div.textContent = "📂 已恢复上次的对话记录。";
+  chat.insertBefore(div, chat.firstChild);
+}
+
 function clearMemory() {
-    const systemMsg = conversationHistory[0];
-    conversationHistory = [systemMsg];
+    const systemMsg = conversationHistory.find(msg => msg.role === 'system');
+    conversationHistory = systemMsg ? [systemMsg] : [];
+    while (chat.children.length > 1) chat.removeChild(chat.lastChild);
+    localStorage.removeItem(STORAGE_KEY);
     const div = document.createElement("div");
     div.className = "msg ai";
     div.textContent = "记忆已清除。我们重新开始吧。";
@@ -86,102 +218,146 @@ function clearMemory() {
     chat.scrollTop = chat.scrollHeight;
 }
 
-// Markdown 渲染
+// ========== Markdown 渲染 ==========
 function simpleMarkdown(text) {
-    text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-    text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    text = text.replace(/^- (.*)/gm, '<li>$1</li>');
-    text = text.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-    text = text.replace(/\n\n/g, '</p><p>');
-    text = text.replace(/\n/g, '<br>');
-    text = '<p>' + text + '</p>';
-    text = text.replace(/<p>\s*<\/p>/g, '');
-    return text;
+    if (!text) return '';
+    let t = text;
+    t = t.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+    t = t.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    t = t.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    t = t.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    t = t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    t = t.replace(/^- (.*)/gm, '<li>$1</li>');
+    t = t.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    t = t.replace(/\n\n/g, '</p><p>');
+    t = t.replace(/\n/g, '<br>');
+    t = '<p>' + t + '</p>';
+    t = t.replace(/<p>\s*<\/p>/g, '');
+    return t;
 }
 
-// 解析思考过程
 function parseResponse(raw) {
-    const thinkMatch = raw.match(/\*\*思考[：:]\*\*\s*([\s\S]*?)(?:\n\s*---\s*|\n\s*---\n)/);
-    if (thinkMatch) {
-        const thinkContent = thinkMatch[1].trim();
-        const mainAnswer = raw.slice(thinkMatch.index + thinkMatch[0].length).trim();
-        return { think: thinkContent, answer: mainAnswer || raw };
-    }
+    const m = raw.match(/\*\*思考[：:]\*\*\s*([\s\S]*?)(?:\n\s*---\s*|\n\s*---\n)/);
+    if (m) return { think: m[1].trim(), answer: raw.slice(m.index + m[0].length).trim() };
     return { think: null, answer: raw };
 }
 
-// 发送消息
+// ========== 智能滚动 ==========
+function scrollToBottom(force) {
+    const threshold = 50;
+    const isUserAtBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < threshold;
+    if (force || isUserAtBottom) {
+        chat.scrollTop = chat.scrollHeight;
+    }
+}
+
+// ========== 发送消息 ==========
 async function sendMessage() {
   const question = inp.value.trim();
   if (!question) return;
 
   addMsg("me", question);
   inp.value = "";
+  resetInputHeight();
 
   conversationHistory.push({ role: "user", content: question });
-
   if (conversationHistory.length > MAX_HISTORY + 1) {
-      const systemMsg = conversationHistory[0];
-      conversationHistory = [systemMsg, ...conversationHistory.slice(-MAX_HISTORY)];
+      const sys = conversationHistory.find(m => m.role === 'system');
+      const rest = conversationHistory.filter(m => m.role !== 'system');
+      conversationHistory = sys ? [sys, ...rest.slice(-MAX_HISTORY)] : rest.slice(-MAX_HISTORY);
   }
+  saveHistory();
 
-  const loading = addMsg("ai", "……");
+  const msgDiv = addMsg("ai", "");
+  let thinkDiv = null;
+  let answerDiv = null;
+  let fullContent = "";
+  let phase = "thinking";
 
   try {
     const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + KEY
-      },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + DEEPSEEK_KEY },
       body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: conversationHistory
+        model: currentModel,
+        messages: conversationHistory,
+        stream: true
       })
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      loading.textContent = "请求失败: " + res.status + " " + errText;
+      msgDiv.textContent = "请求失败: " + res.status + " " + errText;
       conversationHistory.pop();
+      saveHistory();
       return;
     }
 
-    const data = await res.json();
-    const rawAnswer = data.choices[0].message.content;
-    
-    conversationHistory.push({ role: "assistant", content: rawAnswer });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
 
-    if (conversationHistory.length > MAX_HISTORY + 1) {
-        const systemMsg = conversationHistory[0];
-        conversationHistory = [systemMsg, ...conversationHistory.slice(-MAX_HISTORY)];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const d = line.slice(6).trim();
+        if (d === '[DONE]' || !d) continue;
+        try {
+          const delta = JSON.parse(d).choices?.[0]?.delta?.content;
+          if (delta) {
+            fullContent += delta;
+            if (phase === "thinking") {
+              const sm = fullContent.match(/\n\s*---\s*\n/);
+              if (sm) {
+                const tt = fullContent.substring(0, sm.index).replace(/^\*\*思考[：:]\*\*\s*/, '').trim();
+                if (!thinkDiv) { thinkDiv = document.createElement('div'); thinkDiv.className = 'think'; msgDiv.appendChild(thinkDiv); }
+                thinkDiv.innerHTML = '<strong>思考：</strong>' + simpleMarkdown(tt);
+                const sep = document.createElement('hr'); sep.className = 'separator'; msgDiv.appendChild(sep);
+                answerDiv = document.createElement('div'); msgDiv.appendChild(answerDiv);
+                phase = "answering";
+                const at = fullContent.substring(sm.index + sm[0].length);
+                if (at) answerDiv.innerHTML = simpleMarkdown(at);
+              } else {
+                if (!thinkDiv) { thinkDiv = document.createElement('div'); thinkDiv.className = 'think'; msgDiv.appendChild(thinkDiv); }
+                thinkDiv.innerHTML = '<strong>思考：</strong>' + simpleMarkdown(fullContent.replace(/^\*\*思考[：:]\*\*\s*/, ''));
+              }
+            } else if (phase === "answering" && answerDiv) {
+              const parts = fullContent.split(/\n\s*---\s*\n/);
+              if (parts.length > 1) answerDiv.innerHTML = simpleMarkdown(parts.slice(1).join('\n---\n'));
+            }
+            scrollToBottom(false);
+          }
+        } catch(e) {}
+      }
     }
 
-    const parsed = parseResponse(rawAnswer);
-    let html = '';
-    if (parsed.think) {
-        html += '<div class="think"><strong>思考：</strong>' + simpleMarkdown(parsed.think) + '</div>';
-        html += '<hr class="separator">';
+    if (fullContent) {
+      conversationHistory.push({ role: "assistant", content: fullContent });
+      saveHistory();
+    } else {
+      msgDiv.innerHTML = "（小伴陷入了沉思……）";
+      conversationHistory.pop();
+      saveHistory();
     }
-    html += simpleMarkdown(parsed.answer);
-    
-    loading.innerHTML = html;
 
   } catch (err) {
-    loading.innerHTML = "网络错误: " + err.message;
+    msgDiv.innerHTML = "网络错误: " + err.message;
     conversationHistory.pop();
+    saveHistory();
   }
 }
 
 function addMsg(role, text) {
   const div = document.createElement("div");
   div.className = "msg " + role;
-  div.innerHTML = text;
+  if (text) div.innerHTML = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
   return div;
@@ -189,15 +365,12 @@ function addMsg(role, text) {
 
 sendBtn.addEventListener("click", sendMessage);
 inp.addEventListener("keydown", function(e) {
-  if (e.key === "Enter") {
+  if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
 });
-
-document.getElementById("clearBtn").addEventListener("click", function(e) {
-    e.stopPropagation();
-});
+document.getElementById("clearBtn").addEventListener("click", clearMemory);
 </script>
 </body>
 </html>
