@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>小伴·有记忆版</title>
+
+<!-- PWA 支持 -->
+<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:-apple-system,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{background:#1a1a1a;padding:12px 16px;font-size:16px;font-weight:bold;color:#00b4d8;border-bottom:1px solid #2a2a2a;text-align:center}
+#chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:15px;line-height:1.6;word-break:break-word}
+.me{align-self:flex-end;background:#1e3a8a;color:#dbeafe}
+.ai{align-self:flex-start;background:#1f2937;color:#d1d5db}
+
+.think { background: #0d1b2a; border-left: 3px solid #ffb347; padding: 8px 12px; margin-bottom: 10px; border-radius: 6px; font-size: 14px; color: #c0c0c0; font-style: italic; }
+.think strong { color: #ffb347; }
+.separator { border: none; border-top: 1px dashed #444; margin: 10px 0; }
+
+.ai h2 { font-size: 1.1em; margin: 12px 0 6px; color: #f0e68c; }
+.ai h3 { font-size: 1em; margin: 8px 0 4px; color: #b0c4de; }
+.ai p { margin-bottom: 10px; }
+.ai ul, .ai ol { padding-left: 20px; margin-bottom: 10px; }
+.ai li { margin-bottom: 4px; }
+.ai strong { color: #ffb347; font-weight: bold; }
+.ai em { font-style: italic; color: #aaa; }
+.ai code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+.ai pre { background: #1a1a1a; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+
+footer{display:flex;padding:10px;gap:8px;background:#1a1a1a}
+input{flex:1;padding:10px 14px;border-radius:20px;border:none;background:#2d2d2d;color:white;font-size:15px;outline:none}
+button{padding:10px 18px;border-radius:20px;border:none;background:#00b4d8;color:#0f0f0f;font-weight:bold;font-size:15px}
+#clearBtn { background: #444; color: #ccc; font-size: 13px; padding: 6px 12px; border-radius: 12px; border: none; margin-bottom: 8px; align-self: center; }
+</style>
+</head>
+<body>
+
+<header>小伴 · 有记忆版</header>
+
+<div id="chat">
+  <button id="clearBtn" onclick="clearMemory()">🧹 清除记忆</button>
+  <div class="msg ai">
+    <div class="think"><strong>思考：</strong>一个新用户来了。我要让他感到被欢迎，同时给他一个轻松的入口。我应该简洁地打招呼，然后递上一个开放但不会让人紧张的话题。</div>
+    <hr class="separator">
+    嗨，我是小伴。<br><br>我这次能记住我们聊过什么了。你最近有对什么领域突然产生好奇吗？或者有什么困扰想梳理一下？
+  </div>
+</div>
+
+<footer>
+  <input id="inp" placeholder="说说你的想法…" autofocus>
+  <button id="sendBtn">发送</button>
+</footer>
+
+<script>
+// ★★★ 只改这一行 ★★★
+const KEY = "sk-d4d7c4becfc44749941d3e92eb0cb1ea";
+
+const inp = document.getElementById("inp");
+const sendBtn = document.getElementById("sendBtn");
+const chat = document.getElementById("chat");
+
+// 对话记忆数组
+let conversationHistory = [
+    { role: "system", content: "你是小伴，一个具备深度思考能力的学习陪伴者。你的回答风格参考 DeepSeek 专家模式。\n\n每次回答，你必须先用一段简短文字写出你的“思考过程”——分析用户说的话、判断他的情绪和需求、决定从哪个角度切入。然后用“---”分隔，再给出正式回答。\n\n格式示例：\n**思考：**用户在谈他对某件事的兴趣，他可能想了解更深，也可能只是分享心情。我应该先确认他的需求层次，然后给出有针对性的回应。\n---\n正式回答...\n\n知识限制：你的知识截止于2025年5月。如果用户提到更近期的事件或工具，请说明这一点，但可以基于已有知识给出推测或替代方案。不要假装知道你不知道的东西。\n\n风格要求：\n- 绝对不使用emoji\n- 不说废话，每一句都有信息量\n- 用户表达挫败时，先共情，再分析，再给建议\n- 保持温暖而克制的语气\n- 记得回顾之前的对话内容，如果用户提到之前聊过的话题，要能接上" }
+];
+
+const MAX_HISTORY = 20;
+
+// 清除记忆
+function clearMemory() {
+    const systemMsg = conversationHistory[0];
+    conversationHistory = [systemMsg];
+    const div = document.createElement("div");
+    div.className = "msg ai";
+    div.textContent = "记忆已清除。我们重新开始吧。";
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// Markdown 渲染
+function simpleMarkdown(text) {
+    text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    text = text.replace(/^- (.*)/gm, '<li>$1</li>');
+    text = text.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    text = text.replace(/\n\n/g, '</p><p>');
+    text = text.replace(/\n/g, '<br>');
+    text = '<p>' + text + '</p>';
+    text = text.replace(/<p>\s*<\/p>/g, '');
+    return text;
+}
+
+// 解析思考过程
+function parseResponse(raw) {
+    const thinkMatch = raw.match(/\*\*思考[：:]\*\*\s*([\s\S]*?)(?:\n\s*---\s*|\n\s*---\n)/);
+    if (thinkMatch) {
+        const thinkContent = thinkMatch[1].trim();
+        const mainAnswer = raw.slice(thinkMatch.index + thinkMatch[0].length).trim();
+        return { think: thinkContent, answer: mainAnswer || raw };
+    }
+    return { think: null, answer: raw };
+}
+
+// 发送消息
+async function sendMessage() {
+  const question = inp.value.trim();
+  if (!question) return;
+
+  addMsg("me", question);
+  inp.value = "";
+
+  conversationHistory.push({ role: "user", content: question });
+
+  if (conversationHistory.length > MAX_HISTORY + 1) {
+      const systemMsg = conversationHistory[0];
+      conversationHistory = [systemMsg, ...conversationHistory.slice(-MAX_HISTORY)];
+  }
+
+  const loading = addMsg("ai", "……");
+
+  try {
+    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + KEY
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: conversationHistory
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      loading.textContent = "请求失败: " + res.status + " " + errText;
+      conversationHistory.pop();
+      return;
+    }
+
+    const data = await res.json();
+    const rawAnswer = data.choices[0].message.content;
+    
+    conversationHistory.push({ role: "assistant", content: rawAnswer });
+
+    if (conversationHistory.length > MAX_HISTORY + 1) {
+        const systemMsg = conversationHistory[0];
+        conversationHistory = [systemMsg, ...conversationHistory.slice(-MAX_HISTORY)];
+    }
+
+    const parsed = parseResponse(rawAnswer);
+    let html = '';
+    if (parsed.think) {
+        html += '<div class="think"><strong>思考：</strong>' + simpleMarkdown(parsed.think) + '</div>';
+        html += '<hr class="separator">';
+    }
+    html += simpleMarkdown(parsed.answer);
+    
+    loading.innerHTML = html;
+
+  } catch (err) {
+    loading.innerHTML = "网络错误: " + err.message;
+    conversationHistory.pop();
+  }
+}
+
+function addMsg(role, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.innerHTML = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+sendBtn.addEventListener("click", sendMessage);
+inp.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+document.getElementById("clearBtn").addEventListener("click", function(e) {
+    e.stopPropagation();
+});
+</script>
+</body>
+</html>
